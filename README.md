@@ -22,7 +22,7 @@ German: [youtube.com/watch?v=HmQ7_ZgVNxg](https://www.youtube.com/watch?v=HmQ7_Z
 2.  Open the browser console (F12 or cmd+option+i)
 3.  Paste the [whole script](https://raw.githubusercontent.com/lucahammer/tweetXer/main/tweetXer.js) into the console and press enter
 4.  A light blue bar appears at the top of the window
-5.  Use the file picker to select your tweet-headers.js or tweets.js file
+5.  To delete only tweets older than a chosen date, open “Advanced Options”, keep or change the “Delete tweets published before this date” value, then select tweets.js. The default cutoff is one year ago. Use tweet-headers.js only when you want to delete all exported tweets.
 6.  Wait for all your Tweets to vanish (about 5-10 Tweets per second)
 
 If the process is interrupted at any time, you can use the advanced options to enter how many Tweets have been deleted in the previous run to not start at zero again. The script will try to automatically detect if it was run before by calculating the difference between Tweets in the file and the Tweet count on the profile. If there is a difference it will try to automatically skip that amount (+5% buffer). If you want it to start from the beginning, open 'Advanced options' and enter 1 instead of 0. It will then skip exactly one Tweet and not try to calculate an amount.

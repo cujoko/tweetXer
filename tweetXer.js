@@ -83,6 +83,17 @@
       document.getElementById("info").textContent = text;
     },
 
+    getTweetCutoff() {
+      const value = document.getElementById("beforeDate")?.value;
+      if (!value) return null;
+
+      const cutoff = new Date(`${value}T00:00:00.000Z`);
+      if (Number.isNaN(cutoff.getTime())) {
+        throw new Error("Invalid tweet cutoff date");
+      }
+      return cutoff;
+    },
+
     createProgressBar() {
       const progressbar = document.createElement("progress");
       progressbar.id = "progressbar";
@@ -125,7 +136,23 @@
             return;
           }
 
+          let tweetCutoff;
+          try {
+            tweetCutoff = TweetsXer.getTweetCutoff();
+          } catch (error) {
+            TweetsXer.updateInfo(
+              "The tweet cutoff date is invalid. No changes were made.",
+            );
+            return;
+          }
+
           if (filestart.includes(".tweet_headers.")) {
+            if (tweetCutoff) {
+              TweetsXer.updateInfo(
+                "To delete tweets by date, select tweets.js. tweet-headers.js doesn't contain publication dates.",
+              );
+              return;
+            }
             console.log("File contains Tweets.");
             TweetsXer.action = "untweet";
             TweetsXer.tIds = json.map((x) => x.tweet.tweet_id);
@@ -135,7 +162,15 @@
           ) {
             console.log("File contains Tweets.");
             TweetsXer.action = "untweet";
-            TweetsXer.tIds = json.map((x) => x.tweet.id_str);
+            TweetsXer.tIds = json
+              .filter((x) => {
+                if (!tweetCutoff) return true;
+                const createdAt = new Date(x?.tweet?.created_at);
+                return (
+                  !Number.isNaN(createdAt.getTime()) && createdAt < tweetCutoff
+                );
+              })
+              .map((x) => x.tweet.id_str);
           } else if (filestart.includes(".like.")) {
             console.log("File contains Favs.");
             TweetsXer.action = "unfav";
@@ -286,6 +321,9 @@
             <div id="advanced" style="display:none">
                 <label for="skipCount">Enter how many Tweets to skip before selecting a file.</label>
                 <input id="skipCount" type="number" value="" />
+                <label for="beforeDate">Delete tweets published before this date.</label>
+                <input id="beforeDate" type="date" />
+                <small>This filter applies only to tweets.js. Leave it blank to delete all tweets in that file.</small>
                 <p>Supported files:
                 <ul>
                     <li>tweet-headers.js to delete Tweets (10.000 - 20.000 per hour)</li>
@@ -311,6 +349,13 @@
         </div>
             `;
       document.body.insertBefore(div, document.body.firstChild);
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      document.getElementById("beforeDate").value = [
+        oneYearAgo.getFullYear(),
+        String(oneYearAgo.getMonth() + 1).padStart(2, "0"),
+        String(oneYearAgo.getDate()).padStart(2, "0"),
+      ].join("-");
       document
         .getElementById("toggleAdvanced")
         .addEventListener("click", () => {
