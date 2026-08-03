@@ -101,15 +101,29 @@
     processFile() {
       const tn = document.getElementById(`${TweetsXer.dId}_file`);
       if (tn.files && tn.files[0]) {
-        let fr = new FileReader();
+        const fr = new FileReader();
         fr.onloadend = function (evt) {
           // window.YTD.tweet_headers.part0
           // window.YTD.tweets.part0
           // window.YTD.like.part0
           // window.YTD.direct_message_headers.part0
-          let cutpoint = evt.target.result.indexOf("= ");
-          let filestart = evt.target.result.slice(0, cutpoint);
-          let json = JSON.parse(evt.target.result.slice(cutpoint + 1));
+          const fileContents = evt.target.result;
+          const cutpoint = fileContents.indexOf("= ");
+          let filestart;
+          let json;
+
+          try {
+            if (cutpoint < 0) throw new Error("Missing export prefix");
+            filestart = fileContents.slice(0, cutpoint);
+            json = JSON.parse(fileContents.slice(cutpoint + 1));
+            if (!Array.isArray(json)) throw new Error("Export is not an array");
+          } catch (error) {
+            TweetsXer.updateInfo(
+              "Couldn't read this export file. Please select an original X data-export file.",
+            );
+            console.error("Couldn't parse export file:", error);
+            return;
+          }
 
           if (filestart.includes(".tweet_headers.")) {
             console.log("File contains Tweets.");
@@ -155,7 +169,36 @@
           }
 
           if (TweetsXer.action.length > 0) {
+            const idPattern =
+              TweetsXer.action === "undm"
+                ? /^\d+(?:-\d+)*$/
+                : /^\d+$/;
+            TweetsXer.tIds = TweetsXer.tIds.filter(
+              (id) => typeof id === "string" && idPattern.test(id),
+            );
+            if (TweetsXer.tIds.length === 0) {
+              TweetsXer.action = "";
+              TweetsXer.updateInfo(
+                "This export doesn't contain usable X item IDs. No changes were made.",
+              );
+              return;
+            }
             TweetsXer.total = TweetsXer.tIds.length;
+          }
+
+          if (
+            TweetsXer.action.length > 0 &&
+            !window.confirm(
+              `Start ${TweetsXer.action} for ${TweetsXer.total} items? This cannot be undone.`,
+            )
+          ) {
+            TweetsXer.action = "";
+            TweetsXer.tIds = [];
+            TweetsXer.updateInfo("Cancelled. No changes were made.");
+            return;
+          }
+
+          if (TweetsXer.action.length > 0) {
             document.getElementById(`${TweetsXer.dId}_file`).remove();
             TweetsXer.createProgressBar();
           }
@@ -354,10 +397,8 @@
           console.log(response);
         }
 
-        if (
-          !response.headers.get("x-rate-limit-remaining") &&
-          response.headers.get("x-rate-limit-remaining") < 1
-        ) {
+        const remaining = response.headers.get("x-rate-limit-remaining");
+        if (remaining !== null && Number(remaining) < 1) {
           console.log("rate limit hit");
           TweetsXer.ratelimitreset = response.headers.get("x-rate-limit-reset");
           let sleeptime =
@@ -388,9 +429,8 @@
       url,
       body = `{\"variables\":{\"tweet_id\":\"${TweetsXer.tId}\",\"dark_request\":false},\"queryId\":\"${url.split("/")[6]}\"}`,
     ) {
-      return new Promise(async (resolve) => {
-        try {
-          let response = await fetch(url, {
+      try {
+          const response = await fetch(url, {
             headers: {
               authorization: TweetsXer.authorization,
               "content-type": "application/json",
@@ -412,10 +452,8 @@
             TweetsXer.dCount++;
             TweetsXer.updateProgressBar();
 
-            if (
-              response.headers.get("x-rate-limit-remaining") != null &&
-              response.headers.get("x-rate-limit-remaining") < 1
-            ) {
+            const remaining = response.headers.get("x-rate-limit-remaining");
+            if (remaining !== null && Number(remaining) < 1) {
               console.log("rate limit hit");
               console.log(response.headers.get("x-rate-limit-remaining"));
               TweetsXer.ratelimitreset =
@@ -430,35 +468,45 @@
                 );
                 await TweetsXer.sleep(1000);
               }
-              resolve("deleted and waiting");
-            } else {
-              resolve("deleted");
             }
+            return "deleted";
           } else if (response.status == 429) {
             TweetsXer.tIds.push(TweetsXer.tId);
             console.log(
               "Received status code 429. Waiting for 1 second before trying again.",
             );
             await TweetsXer.sleep(1000);
+            return "retry";
           } else {
-            console.log(response);
+            const requestError = new Error(
+              `X rejected the request with status ${response.status}. Stopping to avoid losing progress.`,
+            );
+            requestError.retryItem = true;
+            throw requestError;
           }
-        } catch (error) {
-          if (error.Name === "AbortError") {
+      } catch (error) {
+          if (error.name === "AbortError") {
             TweetsXer.tIds.push(TweetsXer.tId);
             console.log("Request timeout.");
             let sleeptime = 15;
             while (sleeptime > 0) {
               sleeptime--;
               TweetsXer.updateInfo(
-                `Ratelimited. Waiting ${sleeptime} seconds. ${TweetsXer.dCount} deleted.`,
+                `Request timed out. Retrying in ${sleeptime} seconds. ${TweetsXer.dCount} deleted.`,
               );
               await TweetsXer.sleep(1000);
             }
-            resolve("error");
+            return "retry";
           }
-        }
-      });
+          if (error.retryItem) {
+            TweetsXer.tIds.push(TweetsXer.tId);
+            throw error;
+          }
+          TweetsXer.tIds.push(TweetsXer.tId);
+          console.error("Request failed. Retrying in 15 seconds.", error);
+          await TweetsXer.sleep(15000);
+          return "retry";
+      }
     },
 
     async deleteTweets() {
@@ -466,7 +514,14 @@
 
       while (this.tIds.length > 0) {
         this.tId = this.tIds.pop();
-        await this.sendRequest(this.baseUrl + this.deleteURL);
+        try {
+          await this.sendRequest(this.baseUrl + this.deleteURL);
+        } catch (error) {
+          this.updateTitle("TweetXer: Stopped");
+          this.updateInfo(error.message);
+          console.error("Deletion stopped:", error);
+          return;
+        }
         sinceLastPause++;
 
         // Pause for 5 minutes every 198 deletions to avoid rate limits
@@ -502,7 +557,14 @@
 
       while (this.tIds.length > 0) {
         this.tId = this.tIds.pop();
-        await this.sendRequest(this.baseUrl + this.unfavURL);
+        try {
+          await this.sendRequest(this.baseUrl + this.unfavURL);
+        } catch (error) {
+          this.updateTitle("TweetXer: Stopped");
+          this.updateInfo(error.message);
+          console.error("Deletion stopped:", error);
+          return;
+        }
       }
       this.tId = "";
       this.updateTitle("TweetXer");
@@ -512,10 +574,17 @@
     async deleteDMs() {
       while (this.tIds.length > 0) {
         this.tId = this.tIds.pop();
-        await this.sendRequest(
-          this.baseUrl + this.deleteMessageURL,
-          (body = `{\"variables\":{\"messageId\":\"${this.tId}\"},\"requestId\":\""}`),
-        );
+        try {
+          await this.sendRequest(
+            this.baseUrl + this.deleteMessageURL,
+            `{\"variables\":{\"messageId\":\"${this.tId}\"},\"requestId\":\""}`,
+          );
+        } catch (error) {
+          this.updateTitle("TweetXer: Stopped");
+          this.updateInfo(error.message);
+          console.error("Deletion stopped:", error);
+          return;
+        }
       }
       this.tId = "";
       this.updateProgressBar();
@@ -524,10 +593,12 @@
     async deleteConvos() {
       while (this.tIds.length > 0) {
         this.tId = this.tIds.pop();
-        url =
+        const url =
           this.baseUrl +
           this.deleteConvoURL.replace("USER_ID-CONVERSATION_ID", this.tId);
-        let response = await fetch(url, {
+        let response;
+        try {
+          response = await fetch(url, {
           headers: {
             authorization: TweetsXer.authorization,
             "content-type": "application/x-www-form-urlencoded",
@@ -542,7 +613,14 @@
           mode: "cors",
           credentials: "include",
           signal: AbortSignal.timeout(5000),
-        });
+          });
+        } catch (error) {
+          this.tIds.push(this.tId);
+          this.updateTitle("TweetXer: Stopped");
+          this.updateInfo(`Request failed: ${error.message}. No remaining items were discarded.`);
+          console.error("DM conversation deletion stopped:", error);
+          return;
+        }
 
         if (response.status == 204) {
           TweetsXer.dCount++;
@@ -582,7 +660,13 @@
             await TweetsXer.sleep(1000);
           }
         } else {
-          console.log(response);
+          this.tIds.push(this.tId);
+          this.updateTitle("TweetXer: Stopped");
+          this.updateInfo(
+            `X rejected the request with status ${response.status}. No remaining items were discarded.`,
+          );
+          console.error("DM conversation deletion stopped:", response);
+          return;
         }
       }
       this.tId = "";
