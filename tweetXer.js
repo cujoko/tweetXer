@@ -1,20 +1,20 @@
 // ==UserScript==
-// @name         TweetXer
-// @namespace    https://github.com/lucahammer/tweetXer/
-// @version      0.9.4
-// @description  Delete all your Tweets for free.
-// @author       Luca,dbort,pReya,Micolithe,STrRedWolf
-// @license      NoHarm-draft
-// @match        https://x.com/*
-// @match        https://mobile.x.com/*
-// @match        https://twitter.com/*
-// @match        https://mobile.twitter.com/*
-// @icon         https://www.google.com/s2/favicons?domain=twitter.com
-// @grant        none
-// @run-at       document-idle
-// @downloadURL  https://update.greasyfork.org/scripts/476062/TweetXer.user.js
-// @updateURL    https://update.greasyfork.org/scripts/476062/TweetXer.meta.js
-// @supportURL   https://github.com/lucahammer/tweetXer/issues
+// @name TweetXer
+// @namespace https://github.com/lucahammer/tweetXer/
+// @Version 0.9.4
+// @description Delete all your Tweets for free.
+// @author Luca,dbort,pReya,Micolithe,STrRedWolf,iBellowrld
+// @license NoHarm-draft
+// @match https://x.com/*
+// @match https://mobile.x.com/*
+// @match https://twitter.com/*
+// @match https://mobile.twitter.com/*
+// @ICON https://www.google.com/s2/favicons?domain=twitter.com
+// @grant none
+// @run-at document-idle
+// @downloadurl https://update.greasyfork.org/scripts/476062/TweetXer.user.js
+// @updateURL https://update.greasyfork.org/scripts/476062/TweetXer.meta.js
+// @supportURL https://github.com/lucahammer/tweetXer/issues
 // ==/UserScript==
 
 (function () {
@@ -233,40 +233,40 @@
         document.getElementById(this.dId).remove();
       }
       div.innerHTML = `
-            <style>#${this.dId}{ z-index:99999; position: sticky; top:0px; left:0px; width:auto; margin:0 auto; padding: 20px 10%; background:#87CEFA; opacity:0.95; } #${this.dId} > *{padding:5px;} button{background-color:#eff3f4;border-radius:666px;padding:2px 10px;} a {color:blue;}</style>
-            <div style="color:black">
-                <h2 class="${h2Class}" id="tweetsXer_title">TweetXer</h2>
-                <p id="info">Please wait for your profile to load. If this message doesn't go away after some seconds, something isn't working.</p>
-                <p id="start">
-                    <input type="file" value="" id="${this.dId}_file"  />
-                    <a href="#" id="toggleAdvanced">Advanced Options</a>
-                <div id="advanced" style="display:none">
-                    <label for="skipCount">Enter how many Tweets to skip before selecting a file.</label>
-                    <input id="skipCount" type="number" value="" />
-                    <p>Supported files:
-                    <ul>
-                        <li>tweet-headers.js to delete Tweets (10.000 - 20.000 per hour)</li>
-                        <li>direct-message-header.js and direct-message-group-headers.js to delete DMs (around 800 per 15 minutes)</li>
-                        <li>like.js to delete Favs (500 per 15 minutes; only works for the most recent few thousands)</li>
-                    </ul>
-                    <p><strong>Export bookmarks</strong><br>
-                        Bookmarks are not included in the official data export. You can export them here.
-                        <button id="exportBookmarks" type="button">Export Bookmarks</button>
-                    </p>
-                    <p><strong>No tweet-headers.js?</strong><br>
-                        If you are unable to get your data export, you can use the following option.<br>
-                        This option is much slower and less reliable. It can remove at most 4000 Tweets per hour.<br>
-                        <button id="slowDelete" type="button">Slow delete without file</button>
-                    </p>
-                    <p><strong>Unfollow everyone</strong><br>
-                        It's time to let go. This will unfollow everyone you follow.<br>
-                        <button id="unfollowEveryone" type="button">Unfollow everyone</button>
-                    </p>
-                    <p><a id="removeTweetXer" href="#">Remove TweetXer</a></p>
-                    <p><small>${TweetsXer.version}</small></p>
-                </div>
+        <style>#${this.dId}{ z-index:99999; position: sticky; top:0px; left:0px; width:auto; margin:0 auto; padding: 20px 10%; background:#87CEFA; opacity:0.95; } #${this.dId} > *{padding:5px;} button{background-color:#eff3f4;border-radius:666px;padding:2px 10px;} a {color:blue;}</style>
+        <div style="color:black">
+            <h2 class="${h2Class}" id="tweetsXer_title">TweetXer</h2>
+            <p id="info">Please wait for your profile to load. If this message doesn't go away after some seconds, something isn't working.</p>
+            <p id="start">
+                <input type="file" value="" id="${this.dId}_file"  />
+                <a href="#" id="toggleAdvanced">Advanced Options</a>
+            <div id="advanced" style="display:none">
+                <label for="skipCount">Enter how many Tweets to skip before selecting a file.</label>
+                <input id="skipCount" type="number" value="" />
+                <p>Supported files:
+                <ul>
+                    <li>tweet-headers.js to delete Tweets (10.000 - 20.000 per hour)</li>
+                    <li>direct-message-header.js and direct-message-group-headers.js to delete DMs (around 800 per 15 minutes)</li>
+                    <li>like.js to delete Favs (500 per 15 minutes; only works for the most recent few thousands)</li>
+                </ul>
+                <p><strong>Export bookmarks</strong><br>
+                    Bookmarks are not included in the official data export. You can export them here.
+                    <button id="exportBookmarks" type="button">Export Bookmarks</button>
+                </p>
+                <p><strong>No tweet-headers.js?</strong><br>
+                    If you are unable to get your data export, you can use the following option.<br>
+                    This option is much slower and less reliable. It can remove at most 4000 Tweets per hour.<br>
+                    <button id="slowDelete" type="button">Slow delete without file</button>
+                </p>
+                <p><strong>Unfollow everyone</strong><br>
+                    It's time to let go. This will unfollow everyone you follow.<br>
+                    <button id="unfollowEveryone" type="button">Unfollow everyone</button>
+                </p>
+                <p><a id="removeTweetXer" href="#">Remove TweetXer</a></p>
+                <p><small>${TweetsXer.version}</small></p>
             </div>
-                `;
+        </div>
+            `;
       document.body.insertBefore(div, document.body.firstChild);
       document
         .getElementById("toggleAdvanced")
@@ -462,9 +462,33 @@
     },
 
     async deleteTweets() {
+      let sinceLastPause = 0;
+
       while (this.tIds.length > 0) {
         this.tId = this.tIds.pop();
         await this.sendRequest(this.baseUrl + this.deleteURL);
+        sinceLastPause++;
+
+        // Pause for 5 minutes every 198 deletions to avoid rate limits
+        if (sinceLastPause >= 198 && this.tIds.length > 0) {
+          sinceLastPause = 0;
+          let pauseSeconds = 5 * 60;
+          while (pauseSeconds > 0) {
+            this.updateInfo(
+              `${this.dCount}/${this.total} deleted. Pausing ${Math.floor(pauseSeconds / 60)}m ${pauseSeconds % 60}s to avoid rate limits...`,
+            );
+            await this.sleep(1000);
+            pauseSeconds--;
+          }
+        }
+        // Random delay between deletions (1.8-4.5s) so requests aren't back-to-back
+        else if (this.tIds.length > 0) {
+          const delay = 1800 + Math.random() * 2700;
+          this.updateInfo(
+            `${this.dCount}/${this.total} deleted. Next in ${(delay / 1000).toFixed(1)}s...`,
+          );
+          await this.sleep(delay);
+        }
       }
       this.tId = "";
       this.updateProgressBar();
